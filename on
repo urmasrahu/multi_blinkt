@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 blinky.py on 6 64 255 128
