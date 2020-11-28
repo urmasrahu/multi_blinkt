@@ -14,6 +14,8 @@ PORT = 65433        # (non-privileged ports are > 1023)
 COMMS_TIMEOUT = 1.0
 LED_BRIGHTNESS_PERCENT = 5 # Blinkt LEDs are really bright, 5% is a good default
 
+VERBOSE_MODE = False
+
 try: # override above constants if needed
     import blinky_options
     HOST, PORT, COMMS_TIMEOUT, LED_BRIGHTNESS_PERCENT = blinky_options.GetOptions()
@@ -33,7 +35,8 @@ def PrintUsageAndExit():
 
 class IpcServer:
     def Run(self):
-        print(f"Running server on port {PORT}, press CTRL-C to exit")
+        self.OnStartup()
+        
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind((LOCALHOST, PORT))
             s.listen()
@@ -41,20 +44,38 @@ class IpcServer:
                 try:
                     conn, addr = s.accept()
                 except KeyboardInterrupt:
-                    print("Exiting")
+                    self.OnExit()
                     return
                 
                 with conn:
-                    print(f"Connected by {addr}")
+                    if VERBOSE_MODE:
+                        print(f"Connected by {addr}")
                     while True:
                         data = conn.recv(1024)
                         if not data:
                             break
                         
-                        print(f"Received {repr(data)}")
+                        if VERBOSE_MODE:
+                            print(f"Received {repr(data)}")
                         # conn.sendall(data) # use this if you want to echo data back
                         result = self.HandleRequest(data)
                         conn.sendall(result.encode("UTF-8"))
+                        
+    def OnStartup(self):
+        print(f"Running server on port {PORT}, press CTRL-C to exit")
+        blinkt.set_all(255, 255, 255)
+        blinkt.show()
+        time.sleep(1)
+        blinkt.set_all(0, 0, 0)
+        blinkt.show()
+        
+    def OnExit(self):
+        print("Exiting")
+        blinkt.set_all(255, 0, 0)
+        blinkt.show()
+        time.sleep(1)
+        blinkt.set_all(0, 0, 0)
+        blinkt.show()
                         
     def HandleRequest(self, data):
         try:
@@ -231,6 +252,9 @@ def SendCommandToServerAndExit(command, parameters):
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
+        if "-v" in sys.argv:
+            VERBOSE_MODE = True
+        
         if sys.argv[1] == "server":
             RunServerAndExit()
         if sys.argv[1] in ("on", "off", "flash"):
