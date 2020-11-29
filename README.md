@@ -126,3 +126,11 @@ To "flash" a LED, i.e. turn it on, wait for a short period, and return LED to it
 ```
 led.Flash(1, (0, 255, 0), 100)
 ```
+
+## Examples
+
+The **applications** directory contains some examples that use the **Blinkt** class:
+
+* **cpuload.py**: Show CPU load on one LED (green with low load, red with high)
+* **cputemp.py**: Chow CPU temperature on one LED (green with low temperature, red with high)
+* **network_check.py**: Check for network connectivity, show green when connection available, red when not
