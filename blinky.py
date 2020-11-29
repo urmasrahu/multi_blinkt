@@ -21,7 +21,6 @@ try: # override above constants if needed
     HOST, PORT, COMMS_TIMEOUT, LED_BRIGHTNESS_PERCENT = blinky_options.GetOptions()
 except ImportError:
     pass
-print(f"{HOST}:{PORT} brightness={LED_BRIGHTNESS_PERCENT}%")
 
 def PrintUsageAndExit():
     print("Usage: blinky command <parameters>")
@@ -62,7 +61,7 @@ class IpcServer:
                         conn.sendall(result.encode("UTF-8"))
                         
     def OnStartup(self):
-        print(f"Running server on port {PORT}, press CTRL-C to exit")
+        print(f"Running server on port {PORT}, brightness={LED_BRIGHTNESS_PERCENT}%, press CTRL-C to exit")
         blinkt.set_all(255, 255, 255)
         blinkt.show()
         time.sleep(1)
@@ -161,6 +160,9 @@ class IpcServer:
    
 
 class IpcClient:
+    def __init__(self):
+        print(f"Blinky IPC client: will connect to {HOST} port {PORT}")
+    
     def SendMessage(self, message):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.settimeout(COMMS_TIMEOUT)
