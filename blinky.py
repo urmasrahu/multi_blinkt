@@ -4,13 +4,19 @@ import json
 import socket
 import sys
 import time
-import blinkt
+
+try:
+    import blinkt
+except ModuleNotFoundError:
+    pass  # blinkt is only required in server mode
 
 LOCALHOST = "127.0.0.1" # server always binds to localhost
 
 # defaults, these can be overriden in blinky_options.py
-HOST = "127.0.0.1"  # what client connects to, localhost in case client and server run in the same computer, as typical
-PORT = 65433        # (non-privileged ports are > 1023)
+SERVER_USE_LOCALHOST = True  # if True, run server on localhost, otherwise try to use the host's prper IP address
+CLIENT_USE_LOCALHOST = True  # if True, connect client to localhost, otherwise connect to SERVER_ADDRESS
+SERVER_ADDRESS = "x.x.x.x"  # replace with server's IP address if one is running on another computer
+PORT = 65434        # (non-privileged ports are > 1023)
 COMMS_TIMEOUT = 1.0
 LED_BRIGHTNESS_PERCENT = 5 # Blinkt LEDs are really bright, 5% is a good default
 
@@ -18,7 +24,7 @@ VERBOSE_MODE = False
 
 try: # override above constants if needed
     import blinky_options
-    HOST, PORT, COMMS_TIMEOUT, LED_BRIGHTNESS_PERCENT = blinky_options.GetOptions()
+    SERVER_USE_LOCALHOST, CLIENT_USE_LOCALHOST, SERVER_ADDRESS, PORT, COMMS_TIMEOUT, LED_BRIGHTNESS_PERCENT = blinky_options.GetOptions()
 except ImportError:
     pass
 
@@ -30,14 +36,15 @@ def PrintUsageAndExit():
     print("  Turn LED off: blinky.py off")
     print("  Flash LED: blinky.py flash index red green blue milliseconds")
     sys.exit(1)
-    
+
 
 class IpcServer:
     def Run(self):
+        self.ipAddress = self.GetIpAddress()
         self.OnStartup()
         
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind((LOCALHOST, PORT))
+            s.bind((self.ipAddress, PORT))
             s.listen()
             while True:
                 try:
@@ -60,8 +67,22 @@ class IpcServer:
                         result = self.HandleRequest(data)
                         conn.sendall(result.encode("UTF-8"))
                         
+    def GetIpAddress(self):
+        if SERVER_USE_LOCALHOST:
+            return LOCALHOST
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            result = s.getsockname()[0]
+        except Exception:
+            print("Error: cannot determine host IP address, falling back to loopback address")
+            result = LOCALHOST
+        finally:
+            s.close()
+        return result
+    
     def OnStartup(self):
-        print(f"Running server on port {PORT}, brightness={LED_BRIGHTNESS_PERCENT}%, press CTRL-C to exit")
+        print(f"Running server on {self.ipAddress} port {PORT}, brightness={LED_BRIGHTNESS_PERCENT}%, press CTRL-C to exit")
         blinkt.set_all(255, 255, 255)
         blinkt.show()
         time.sleep(1)
@@ -161,14 +182,15 @@ class IpcServer:
 
 class IpcClient:
     def __init__(self):
-        print(f"Blinky IPC client: will connect to {HOST} port {PORT}")
+        self.ipAddress = LOCALHOST if CLIENT_USE_LOCALHOST else SERVER_ADDRESS
+        print(f"Blinky IPC client: will connect to {self.ipAddress} port {PORT}")
     
     def SendMessage(self, message):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.settimeout(COMMS_TIMEOUT)
             
             try:
-                s.connect((HOST, PORT))
+                s.connect((self.ipAddress, PORT))
             except ConnectionRefusedError:
                 return (None, "Unable to connect to server")
             
