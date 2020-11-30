@@ -134,3 +134,18 @@ The **applications** directory contains some examples that use the **Blinkt** cl
 * **cpuload.py**: Show CPU load on one LED (green with low load, red with high)
 * **cputemp.py**: Chow CPU temperature on one LED (green with low temperature, red with high)
 * **network_check.py**: Check for network connectivity, show green when connection available, red when not
+
+## Advanced use: control LEDs from another computer over network
+
+In **blinky_options.py**, the following constants are being set:
+
+```
+SERVER_USE_LOCALHOST = True  # if True, run server on localhost, otherwise try to use the host's proper IP address
+CLIENT_USE_LOCALHOST = True  # if True, connect client to localhost, otherwise connect to SERVER_ADDRESS
+SERVER_ADDRESS = "x.x.x.x"  # replace with server's IP address if one is running on another computer
+PORT = 65434        # (non-privileged ports are > 1023)
+```
+
+As the comments above indicate, with these defaults, the server will run on the computer's "localhost" address, 127.0.0.1, and one or more clients will also connect to this address. This allows only programs running on the same computer (the Raspberry Pi) to use the LEDs, as other computers won't be able to connect to the server. This is probably good for most use scenarios.
+
+However, if you want to give access to the Blinkt LEDs from another computer, you can change these values. In this case, set both SERVER_USE_LOCALHOST and CLIENT_USE_LOCALHOST to False, and set SERVER_ADDRESS to the IP address of the computer that runs the multi_blinkt server. That way, both clients running in the same computer and other computers can connect to the server and use the LEDs (the server will print out the IP address it is using at startup). The other computers will not need to have the Blinkt! Python library installed, and they don't need to be Raspbarry Pi computers, you can use Windows or whatever.
