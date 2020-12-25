@@ -52,7 +52,7 @@ To turn a LED on, use the **on** command:
 on <index> <red> <green> <blue>
 ```
   
-where *index* is the LED index (from 0 to 7), and the follwing paramters are the red, green and blue color values respectively (in the range 0-255). For example, this will set the first (index 0) LED to red:
+where *index* is the LED index (from 0 to 7), and the following paramters are the red, green and blue color values respectively (in the range 0-255). For example, this will set the first (index 0) LED to red:
 
 ```
 python3 blinky.py on 0 255 0 0
